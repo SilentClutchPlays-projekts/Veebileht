@@ -66,7 +66,7 @@
             margin: 25px 0;
             border-radius: 6px;
             transition: background-color 0.3s;
-            white-space: pre-wrap; /* Säilitab kõik sinu pandud tühikud ja reavahetused */
+            white-space: pre-wrap;
         }
 
         .pealkiri-blokk {
@@ -117,13 +117,11 @@
             }
         });
 
-        // 2. LIST SÕNEDEST, MIDA FAILIDE ALGUSEST OTSIA
-        // Kood vaatab, millega fail algab, ja eemaldab selle märgise tekstist enne kuvamist
+        // 2. KÕIK MÄRGISED
         const margised = ['{pealkiri}', '{peatükk1}', '{peatükk2}', '{peatükk3}', '{peatükk4}'];
 
-        // Kuna GitHub Pages ei luba brauseril otse kausta skaneerida ilma nimekirjata,
-        // siis paneme siia kirja failid, mida sa tahad laadida.
-        // Nii saab kood need kohe kätte ilma vigadeta!
+        // 3. FAILIDE NIMEKIRI
+        // Kui teed sisu kausta uue faili, kirjuta selle nimi lihtsalt siia listi juurde!
         const failid = [
             'sisu/avaleht.txt',
             'sisu/paroolid.txt',
@@ -137,18 +135,21 @@
             try {
                 for (const failiTee of failid) {
                     const response = await fetch(failiTee);
-                    if (!response.ok) continue;
+                    if (!response.ok) {
+                        console.log('Ei saanud faili kätte:', failiTee);
+                        continue;
+                    }
 
                     let tekst = await response.text();
                     tekst = tekst.trim();
 
-                    // Tuvastame, mis märgisega fail algab
-                    let leitudMargis = '{peatükk1}'; // Vaikimisi, kui märgist pole
-                    
+                    if (tekst === '') continue;
+
+                    // Tuvastame märgise
+                    let leitudMargis = '{peatükk1}';
                     for (const m of margised) {
                         if (tekst.startsWith(m)) {
                             leitudMargis = m;
-                            // Kustutame märgise faili teksti algusest ära, et seda lehel ei näitaks
                             tekst = tekst.replace(m, '').trim();
                             break;
                         }
@@ -160,36 +161,36 @@
                     });
                 }
 
-                // Sordime failid märgiste järgi ritta: {pealkiri} esimeseks, siis peatükk1, peatükk2 jne.
+                // Sorteerimine
                 laetudSisu.sort((a, b) => {
                     if (a.margis === '{pealkiri}') return -1;
                     if (b.margis === '{pealkiri}') return 1;
                     return a.margis.localeCompare(b.margis);
                 });
 
-                // Kustutame laadimise teksti ekraanilt
-                konteiner.innerHTML = '';
+                // Kui ühtegi faili ei õnnestunud lugeda
+                if (laetudSisu.length === 0) {
+                    document.getElementById('laadimis-tekst').textContent = 'Kaustast "sisu" ei leitud faile või failid on tühjad!';
+                    return;
+                }
 
-                // Paneme sisu lehele
+                // Kuvamine
+                konteiner.innerHTML = '';
                 laetudSisu.forEach(item => {
                     const element = document.createElement('div');
-                    
                     if (item.margis === '{pealkiri}') {
-                        // Kuvatakse otse lehel ilma kastita
                         element.className = 'pealkiri-blokk';
                         element.innerHTML = item.sisu;
                     } else {
-                        // Kuvatakse ilusa kasti (kaardi) sees
                         element.className = 'card';
                         element.innerHTML = item.sisu;
                     }
-                    
                     konteiner.appendChild(element);
                 });
 
             } catch (error) {
-                console.error('Error sisu laadimisel:', error);
-                document.getElementById('laadimis-tekst').textContent = 'Error sisu laadimisel!';
+                console.error('Error:', error);
+                document.getElementById('laadimis-tekst').textContent = 'Error sisu kuvamisel!';
             }
         }
 
