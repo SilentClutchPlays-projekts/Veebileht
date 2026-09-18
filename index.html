@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interneti Turvalisuse Teejuht</title>
+    <style>
+        :root {
+            --bg-color: #121820;
+            --text-color: #e2e8f0;
+            --card-bg: #1e293b;
+            --card-border: #3b82f6;
+            --button-bg: #334155;
+            --button-text: #ffffff;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #ffffff;
+            --text-color: #1e293b;
+            --card-bg: #f8fafc;
+            --card-border: #0284c7;
+            --button-bg: #e2e8f0;
+            --button-text: #1e293b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.6;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        header {
+            position: relative;
+            margin-bottom: 40px;
+            padding-right: 120px;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: opacity 0.2s;
+        }
+
+        .theme-toggle:hover {
+            opacity: 0.9;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-left: 5px solid var(--card-border);
+            margin: 25px 0;
+            border-radius: 6px;
+            transition: background-color 0.3s;
+            white-space: pre-wrap;
+        }
+
+        .card h3 {
+            margin-top: 0;
+        }
+
+        .pealkiri-blokk {
+            margin-top: 40px;
+            margin-bottom: 15px;
+        }
+
+        footer {
+            margin-top: 60px;
+            font-size: 0.85em;
+            text-align: center;
+            opacity: 0.7;
+            border-top: 1px solid var(--button-bg);
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <header>
+        <h1 id="lehe-pealkiri">Interneti Turvalisuse Teejuht</h1>
+        <p id="lehe-alapealkiri">Praktilised nõuanded ja põhitõed end veebis kaitsmiseks.</p>
+        <button class="theme-toggle" id="themeBtn">Hele režiim</button>
+    </header>
+
+    <main id="sisu-konteiner">
+        <p id="laadimis-tekst">Laen sisu...</p>
+    </main>
+
+    <footer>
+        <p>© 2026 Interneti Turvalisuse Projekt • Kõik õigused kaitstud.</p>
+    </footer>
+
+    <script>
+        // 1. TEEMAVAHETUS
+        const themeBtn = document.getElementById('themeBtn');
+        const body = document.body;
+
+        themeBtn.addEventListener('click', () => {
+            const currentTheme = body.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                body.setAttribute('data-theme', 'light');
+                themeBtn.textContent = 'Tume režiim';
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                themeBtn.textContent = 'Hele režiim';
+            }
+        });
+
+        // 2. FAILIDE NIMEKIRI KAUSTAS "sisu"
+        // Kui lisad uue .txt faili kausta, kirjuta selle faili nimi lihtsalt siia nimekirja juurde!
+        const sisuFailid = [
+            'sisu/avaleht.txt',
+            'sisu/paroolid.txt',
+            'sisu/autentimine.txt'
+        ];
+
+        async function laadiFailid() {
+            const konteiner = document.getElementById('sisu-konteiner');
+            let laetudSisu = [];
+
+            try {
+                // Loeme kõik failid nimekirjast asünkroonselt sisse
+                for (const failiTee of sisuFailid) {
+                    const response = await fetch(failiTee);
+                    if (!response.ok) continue;
+                    
+                    const tekst = await response.text();
+                    
+                    // Jagame faili sisu ridadeks
+                    const read = tekst.split('\n');
+                    const margis = read[0].trim(); // Esimene rida (nt {pealkiri} või {peatukk1})
+                    
+                    const pealkiri = read[1] ? read[1].trim() : ''; // Teine rida on pealkiri
+                    const sisu = read.slice(2).join('\n').trim(); // Ülejäänud tekst on sisu
+
+                    laetudSisu.push({ margis, pealkiri, sisu });
+                }
+
+                // Sordime sisu nii, et {pealkiri} on eespool ja peatükid järgnevad numbrilises või tähestikulises järjekorras
+                laetudSisu.sort((a, b) => {
+                    if (a.margis === '{pealkiri}') return -1;
+                    if (b.margis === '{pealkiri}') return 1;
+                    return a.margis.localeCompare(b.margis);
+                });
+
+                // Kustutame laadimise teksti
+                konteiner.innerHTML = '';
+
+                // Kuvame sisu lehel vastavalt tüübile
+                laetudSisu.forEach(item => {
+                    const element = document.createElement('div');
+                    
+                    if (item.margis === '{pealkiri}') {
+                        element.className = 'pealkiri-blokk';
+                        element.innerHTML = `<h2>${item.pealkiri}</h2><p>${item.sisu}</p>`;
+                    } else {
+                        element.className = 'card';
+                        element.innerHTML = `<h3>${item.pealkiri}</h3><p>${item.sisu}</p>`;
+                    }
+                    
+                    konteiner.appendChild(element);
+                });
+
+            } catch (error) {
+                console.error('Error sisu laadimisel:', error);
+                document.getElementById('laadimis-tekst').textContent = 'Error sisu laadimisel!';
+            }
+        }
+
+        laadiFailid();
+    </script>
+</body>
+</html>
