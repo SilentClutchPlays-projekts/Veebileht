@@ -120,47 +120,63 @@
             }
         });
 
-        // 2. FAILIDE NIMEKIRI KAUSTAS "sisu"
-        // Kui lisad uue .txt faili kausta, kirjuta selle faili nimi lihtsalt siia nimekirja juurde!
-        const sisuFailid = [
-            'sisu/avaleht.txt',
-            'sisu/paroolid.txt',
-            'sisu/autentimine.txt'
-        ];
-
-        async function laadiFailid() {
+        // 2. AUTOMAATNE FAILIDE AVASTAMINE JA LAADIMINE
+        async function laadiAutomaatneSisu() {
             const konteiner = document.getElementById('sisu-konteiner');
             let laetudSisu = [];
 
             try {
-                // Loeme kõik failid nimekirjast asünkroonselt sisse
-                for (const failiTee of sisuFailid) {
-                    const response = await fetch(failiTee);
+                // Skaneerime sisu kausta nimekirja (töötab nii GitHubis kui kohalikus testserveris)
+                const kataloogiResponse = await fetch('./sisu/');
+                if (!kataloogiResponse.ok) throw new Error('Kausta sisu ei leitud');
+                
+                const kataloogiTekst = await kataloogiResponse.text();
+                
+                // Kasutame regulaaravaldist (Regex), et leida kõik tekstifailid (.txt) kaustast
+                const failiRegex = /href="([^"]+\.txt)"/g;
+                let murtudLink;
+                let failid = [];
+
+                while ((murtudLink = failiRegex.exec(kataloogiTekst)) !== null) {
+                    // Puhastame failinime liigsest koodist
+                    const failiNimi = murtudLink[1].split('/').pop();
+                    if (!failid.includes(failiNimi)) {
+                        failid.push(failiNimi);
+                    }
+                }
+
+                // Kui automaatne skaneerimine ei leidnud midagi (näiteks mõnes spetsiifilises arvutikeskkonnas ilma serverita)
+                if (failid.length === 0) {
+                    document.getElementById('laadimis-tekst').textContent = 'Error: Palun veendu, et kaustas "sisu" on .txt failid ja kood on GitHubis.';
+                    return;
+                }
+
+                // Loeme iga leitud faili sisu sisse
+                for (const failiNimi of failid) {
+                    const response = await fetch(`./sisu/${failiNimi}`);
                     if (!response.ok) continue;
                     
                     const tekst = await response.text();
-                    
-                    // Jagame faili sisu ridadeks
                     const read = tekst.split('\n');
-                    const margis = read[0].trim(); // Esimene rida (nt {pealkiri} või {peatukk1})
                     
+                    const margis = read[0] ? read[0].trim() : ''; // Esimene rida on märgis (nt {pealkiri})
                     const pealkiri = read[1] ? read[1].trim() : ''; // Teine rida on pealkiri
-                    const sisu = read.slice(2).join('\n').trim(); // Ülejäänud tekst on sisu
+                    const sisu = read.slice(2).join('\n').trim(); // Ülejäänud on sisu
 
                     laetudSisu.push({ margis, pealkiri, sisu });
                 }
 
-                // Sordime sisu nii, et {pealkiri} on eespool ja peatükid järgnevad numbrilises või tähestikulises järjekorras
+                // Sordime sisu märgiste järgi: {pealkiri} esimeseks, ülejäänud märgiste järgi ritta
                 laetudSisu.sort((a, b) => {
                     if (a.margis === '{pealkiri}') return -1;
                     if (b.margis === '{pealkiri}') return 1;
                     return a.margis.localeCompare(b.margis);
                 });
 
-                // Kustutame laadimise teksti
+                // Tühjendame konteineri laadimistekstist
                 konteiner.innerHTML = '';
 
-                // Kuvame sisu lehel vastavalt tüübile
+                // Kuvame tulemused ekraanile
                 laetudSisu.forEach(item => {
                     const element = document.createElement('div');
                     
@@ -177,11 +193,11 @@
 
             } catch (error) {
                 console.error('Error sisu laadimisel:', error);
-                document.getElementById('laadimis-tekst').textContent = 'Error sisu laadimisel!';
+                document.getElementById('laadimis-tekst').textContent = 'Error sisu automaatsel laadimisel!';
             }
         }
 
-        laadiFailid();
+        laadiAutomaatneSisu();
     </script>
 </body>
 </html>
