@@ -116,26 +116,37 @@
             }
         });
 
-        const margised = ['{pealkiri}', '{peatükk1}', '{peatükk2}', '{peatükk3}', '{peatükk4}'];
+        const margised = ['{pealkiri}', '{peatükk1}', '{peatükk2}', '{peatükk3}', '{peatükk4}', '{peatükk5}', '{peatükk6}', '{peatükk7}', '{peatükk8}', '{peatükk9}', '{peatükk10}'];
+        
+        // Sinu lingid.txt faili püsiv aadress
+        const lingidFailiAadress = 'https://raw.githubusercontent.com/SilentClutchPlays-projekts/database/refs/heads/main/lingid.txt';
 
-        // Sinu uue sisu-repositooriumi püsivad RAW lingid
-        const failiAllikad = [
-            'https://raw.githubusercontent.com/SilentClutchPlays-projekts/database/refs/heads/main/pealkiri.txt',
-            'https://raw.githubusercontent.com/SilentClutchPlays-projekts/database/refs/heads/main/1-peat%C3%BCkk.txt',
-            'https://raw.githubusercontent.com/SilentClutchPlays-projekts/database/refs/heads/main/2-peat%C3%BCkk.txt',
-            'https://raw.githubusercontent.com/SilentClutchPlays-projekts/database/refs/heads/main/3-peat%C3%BCkk.txt'
-        ];
-
-        async function laadiSisuExernal() {
+        async function uuendaVeebileheSisu() {
             const konteiner = document.getElementById('sisu-konteiner');
             let laetudSisu = [];
 
             try {
+                // 1. Laeme sisse lingid.txt faili (lisame ajatempli, et vältida vahemälu)
+                const resLingid = await fetch(lingidFailiAadress + '?v=' + Date.now());
+                if (!resLingid.ok) {
+                    console.error('Ei saanud lingid.txt faili kätte');
+                    return;
+                }
+
+                const lingidTekst = await resLingid.text();
+                
+                // Jagame tekstifaili ridadeks ja puhastame tühjadest ridadest
+                const failiAllikad = lingidTekst.split('\n')
+                    .map(rida => rida.trim())
+                    .filter(rida => rida.length > 0);
+
+                if (failiAllikad.length === 0) {
+                    return;
+                }
+
+                // 2. Loeme sisse kõik leitud lingid
                 for (const algneTee of failiAllikad) {
-                    // Lisame juhusliku parameetri, et vältida brauseri vahemälu vanu andmeid
-                    const failiTee = algneTee + '?v=' + Date.now();
-                    
-                    const resFail = await fetch(failiTee);
+                    const resFail = await fetch(algneTee + '?v=' + Date.now());
                     if (!resFail.ok) continue;
 
                     let tekst = await resFail.text();
@@ -162,14 +173,14 @@
                 laetudSisu.sort((a, b) => {
                     if (a.margis === '{pealkiri}') return -1;
                     if (b.margis === '{pealkiri}') return 1;
-                    return a.margis.localeCompare(b.margis);
+                    
+                    // Sorteerime peatüki numbri järgi loogiliselt
+                    const numbriA = parseInt(a.margis.replace(/\D/g, '')) || 0;
+                    const numbriB = parseInt(b.margis.replace(/\D/g, '')) || 0;
+                    return numbriA - numbriB;
                 });
 
-                if (laetudSisu.length === 0) {
-                    document.getElementById('laadimis-tekst').textContent = 'Tekstifaile ei suudetud andmebaasist laadida.';
-                    return;
-                }
-
+                // Kuvame uue sisu ekraanile (asendame vana sisu)
                 konteiner.innerHTML = '';
                 laetudSisu.forEach(item => {
                     const element = document.createElement('div');
@@ -184,12 +195,15 @@
                 });
 
             } catch (error) {
-                console.error(error);
-                document.getElementById('laadimis-tekst').textContent = 'Sisu laadimisel tekkis tõrge.';
+                console.error('Viga sisu värskendamisel:', error);
             }
         }
 
-        laadiSisuExernal();
+        // Käivitame laadimise kohe lehe avamisel
+        uuendaVeebileheSisu();
+
+        // Seadistame automaatse uuenduse iga 5 sekundi (5000 millisekundi) tagant
+        setInterval(uuendaVeebileheSisu, 5000);
     </script>
 </body>
 </html>
