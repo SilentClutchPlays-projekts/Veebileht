@@ -118,31 +118,25 @@
 
         const margised = ['{pealkiri}', '{peatükk1}', '{peatükk2}', '{peatükk3}', '{peatükk4}'];
 
-        async function laadiSisu() {
+        // Sinu uue sisu-repositooriumi püsivad RAW lingid
+        const failiAllikad = [
+            'https://raw.githubusercontent.com/SilentClutchPlays-projekts/database/refs/heads/main/pealkiri.txt',
+            'https://raw.githubusercontent.com/SilentClutchPlays-projekts/database/refs/heads/main/1-peat%C3%BCkk.txt',
+            'https://raw.githubusercontent.com/SilentClutchPlays-projekts/database/refs/heads/main/2-peat%C3%BCkk.txt',
+            'https://raw.githubusercontent.com/SilentClutchPlays-projekts/database/refs/heads/main/3-peat%C3%BCkk.txt'
+        ];
+
+        async function laadiSisuExernal() {
             const konteiner = document.getElementById('sisu-konteiner');
             let laetudSisu = [];
 
             try {
-                // Lisame siia juhusliku numbri (cache buster), et brauser ei laeks vana vigast failid.json versiooni
-                const responseNimekiri = await fetch('./sisu/failid.json?v=' + Date.now());
-                
-                if (!responseNimekiri.ok) {
-                    console.error('Nimekirja faili ei leitud');
-                    document.getElementById('laadimis-tekst').textContent = 'Nimekirja faili (failid.json) ei leitud kaustast sisu.';
-                    return;
-                }
-
-                const leitudFailid = await responseNimekiri.json();
-
-                for (const failiNimi of leitudFailid) {
-                    // encodeURIComponent teeb Pop!_OS täpitähtedest (ü, ä) veebiserverile arusaadavad turvalised aadressid
-                    const failiTee = `./sisu/${encodeURIComponent(failiNimi)}`;
+                for (const algneTee of failiAllikad) {
+                    // Lisame juhusliku parameetri, et vältida brauseri vahemälu vanu andmeid
+                    const failiTee = algneTee + '?v=' + Date.now();
                     
                     const resFail = await fetch(failiTee);
-                    if (!resFail.ok) {
-                        console.error('Viga faili laadimisel:', failiNimi);
-                        continue;
-                    }
+                    if (!resFail.ok) continue;
 
                     let tekst = await resFail.text();
                     tekst = tekst.trim();
@@ -164,7 +158,7 @@
                     });
                 }
 
-                // Sorteerime märgiste järgi
+                // Sorteerime märgiste järgi: {pealkiri} kõige ette, edasi peatükkide järjekorras
                 laetudSisu.sort((a, b) => {
                     if (a.margis === '{pealkiri}') return -1;
                     if (b.margis === '{pealkiri}') return 1;
@@ -172,7 +166,7 @@
                 });
 
                 if (laetudSisu.length === 0) {
-                    document.getElementById('laadimis-tekst').textContent = 'Kaustast "sisu" ei leitud faile või failid on tühjad!';
+                    document.getElementById('laadimis-tekst').textContent = 'Tekstifaile ei suudetud andmebaasist laadida.';
                     return;
                 }
 
@@ -191,11 +185,11 @@
 
             } catch (error) {
                 console.error(error);
-                document.getElementById('laadimis-tekst').textContent = 'Sisu laadimisel tekkis viga.';
+                document.getElementById('laadimis-tekst').textContent = 'Sisu laadimisel tekkis tõrge.';
             }
         }
 
-        laadiSisu();
+        laadiSisuExernal();
     </script>
 </body>
 </html>
