@@ -123,35 +123,31 @@
             let laetudSisu = [];
 
             try {
-                console.log('Alustan failid.json laadimist...');
-                const responseNimekiri = await fetch('./sisu/failid.json');
+                // Lisame siia juhusliku numbri (cache buster), et brauser ei laeks vana vigast failid.json versiooni
+                const responseNimekiri = await fetch('./sisu/failid.json?v=' + Date.now());
                 
                 if (!responseNimekiri.ok) {
-                    console.error('Viga: failid.json laadimine ebaõnnestus. Status:', responseNimekiri.status);
+                    console.error('Nimekirja faili ei leitud');
                     document.getElementById('laadimis-tekst').textContent = 'Nimekirja faili (failid.json) ei leitud kaustast sisu.';
                     return;
                 }
 
                 const leitudFailid = await responseNimekiri.json();
-                console.log('Nimekirjast leitud failid:', leitudFailid);
 
                 for (const failiNimi of leitudFailid) {
-                    const failiTee = `./sisu/${failiNimi}`;
-                    console.log('Üritan laadida faili:', failiTee);
+                    // encodeURIComponent teeb Pop!_OS täpitähtedest (ü, ä) veebiserverile arusaadavad turvalised aadressid
+                    const failiTee = `./sisu/${encodeURIComponent(failiNimi)}`;
                     
                     const resFail = await fetch(failiTee);
                     if (!resFail.ok) {
-                        console.error('Viga: Faili ei leitud või pole kättesaadav ->', failiTee, 'Status:', resFail.status);
+                        console.error('Viga faili laadimisel:', failiNimi);
                         continue;
                     }
 
                     let tekst = await resFail.text();
                     tekst = tekst.trim();
 
-                    if (tekst === '') {
-                        console.warn('Hoiatus: Fail on tühi ->', failiTee);
-                        continue;
-                    }
+                    if (tekst === '') continue;
 
                     let leitudMargis = '{peatükk1}';
                     for (const m of margised) {
@@ -162,13 +158,13 @@
                         }
                     }
 
-                    console.log('Fail laetud edukalt. Märgis:', leitudMargis);
                     laetudSisu.push({
                         margis: leitudMargis,
                         sisu: tekst
                     });
                 }
 
+                // Sorteerime märgiste järgi
                 laetudSisu.sort((a, b) => {
                     if (a.margis === '{pealkiri}') return -1;
                     if (b.margis === '{pealkiri}') return 1;
@@ -176,7 +172,6 @@
                 });
 
                 if (laetudSisu.length === 0) {
-                    console.error('Viga: Ühtegi tekstifaili nimekirjast ei suudetud edukalt laadida.');
                     document.getElementById('laadimis-tekst').textContent = 'Kaustast "sisu" ei leitud faile või failid on tühjad!';
                     return;
                 }
@@ -193,10 +188,9 @@
                     }
                     konteiner.appendChild(element);
                 });
-                console.log('Kogu sisu on edukalt ekraanile kuvatud.');
 
             } catch (error) {
-                console.error('Süsteemi kriitiline viga sisu laadimisel:', error);
+                console.error(error);
                 document.getElementById('laadimis-tekst').textContent = 'Sisu laadimisel tekkis viga.';
             }
         }
