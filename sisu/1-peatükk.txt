@@ -1,4 +1,4 @@
 {peatükk1}
-1. Tugevad ja unikaalsed paroolid
+<h3>1. Tugevad ja unikaalsed paroolid</h3>
 Ära kasuta kunagi ühte parooli mitmel lehel, nii teed häkkerite elu lihtsaks.
 Parem tee erinevaid ja unikaalseid paroole sest kui häkkerid murravad 1 parooli siis nad ei pääse teistesse kontodesse sama parooliga.
